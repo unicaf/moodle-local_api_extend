@@ -1,4 +1,4 @@
-# api_extend - Moodle Plugin
+# API Extend - Moodle Plugin
 
 A moodle plugin which includes some extra API functions.
 
