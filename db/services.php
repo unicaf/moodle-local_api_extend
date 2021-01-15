@@ -97,7 +97,6 @@ $services = [
             'api_ext_get_assign',
             'api_ext_get_quiz',
             'api_ext_get_feedback',
-            'api_ext_get_quiz_feedback',
             'api_ext_get_course_modules',
             'api_ext_get_assignment_files',
             'api_ext_get_grade',

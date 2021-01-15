@@ -374,16 +374,15 @@ class api_extend extends external_api
     public static function get_grade_parameters()
     {
         return new external_function_parameters([
-            'instanceid' => new external_value(PARAM_INT, 'The instance id'),
+            'gradeitemid' => new external_value(PARAM_INT, 'The grade item id'),
             'userid' => new external_value(PARAM_INT, 'The user id'),
-            'module' => new external_value(PARAM_TEXT, 'The name of the module')
         ]);
     }
 
     /**
      * Get Assignment/Quiz Grade
      *
-     * @param $instanceid
+     * @param $gradeitemid
      * @param $userid
      * @param $module
      * @return array
@@ -392,39 +391,35 @@ class api_extend extends external_api
      * @throws moodle_exception
      * @throws required_capability_exception
      */
-    public static function get_grade($instanceid, $userid, $module)
+    public static function get_grade($gradeitemid, $userid)
     {
         global $DB;
 
         //Parameter validation
         $params = self::validate_parameters(
             self::get_grade_parameters(),
-            ['instanceid' => $instanceid, 'userid' => $userid, 'module' => $module]
+            ['gradeitemid' => $gradeitemid, 'userid' => $userid]
         );
 
         $context = context_system::instance();
 
-        $capability = 'mod/' . $module . ':view';
+        $capability = 'mod/assign:view';
         require_capability($capability, $context);
 
-        $table = "${module}_grades";
-        $where = 'id = :id AND userid = :userid';
-        if ($module == 'quiz') {
-            $where = 'quiz = :id AND userid = :userid';
-        }
+        $sql = "SELECT gg.id, gi.courseid, gg.finalgrade, gi.iteminstance, gi.itemmodule
+                  FROM {grade_items} gi
+            INNER JOIN {grade_grades} gg ON gg.itemid = gi.id
+                 WHERE gi.id = :id AND gg.userid = :userid";
 
-        $parameters = ['id' => $params['instanceid'], 'userid' => $params['userid']];
-        $record = $DB->get_record_select($table, $where, $parameters, '*', MUST_EXIST);
+        $record = $DB->get_record_sql($sql, ['id' => $params['gradeitemid'], 'userid' => $params['userid']], MUST_EXIST);
 
-        $return = ['grade' => $record->grade];
-
-        if (isset($record->assignment)) {
-            $return['assignmentid'] = $record->assignment;
-        } elseif (isset($record->quiz)) {
-            $return['assignmentid'] = $record->quiz;
-        }
-
-        return $return;
+        return [
+            'id' => $record->id,
+            'grade' => $record->finalgrade,
+            'courseid' => $record->courseid,
+            'iteminstance' => $record->iteminstance,
+            'itemmodule' => $record->itemmodule,
+        ];
     }
 
     /**
@@ -436,8 +431,11 @@ class api_extend extends external_api
     {
         return new external_single_structure(
             [
+                'id' => new external_value(PARAM_INT, 'The Id of the grade'),
                 'grade' => new external_value(PARAM_TEXT, 'The Grade'),
-                'assignmentid' => new external_value(PARAM_INT, 'The Assignment Id'),
+                'courseid' => new external_value(PARAM_INT, 'The Course Id'),
+                'iteminstance' => new external_value(PARAM_INT, 'The Item Instance Id'),
+                'itemmodule' => new external_value(PARAM_TEXT, 'The Item Module'),
             ]
         );
     }
@@ -580,46 +578,32 @@ class api_extend extends external_api
     {
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The instance id'),
-            'module' => new external_value(PARAM_TEXT, 'The name of the module')
         ]);
     }
 
     /**
      * @param $instanceid
-     * @param $module
      * @return array
      * @throws dml_exception
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function get_feedback($instanceid, $module)
+    public static function get_feedback($instanceid)
     {
         global $DB;
 
         //Parameter validation
         $params = self::validate_parameters(
             self::get_feedback_parameters(),
-            ['instanceid' => $instanceid, 'module' => $module]
+            ['instanceid' => $instanceid]
         );
 
         $context = context_system::instance();
 
-        $capability = 'mod/' . $module . ':view';
+        $capability = 'mod/assign:view';
         require_capability($capability, $context);
 
-        $table = "assignfeedback_comments";
-        $where = 'grade = :instanceid';
-        $fields = 'commenttext as feedback';
-        if ($module == 'quiz') {
-            $table = 'quiz_feedback';
-            $where = 'quizid = :instanceid';
-            $fields = 'feedbacktext as feedback';
-        }
-
-        $parameters = [];
-        $parameters['instanceid'] = $params['instanceid'];
-
-        $record = $DB->get_record_select($table, $where, $parameters, $fields, MUST_EXIST);
+        $record = $DB->get_record('grade_grades', ['id' => $params['instanceid']], 'feedback');
 
         return (array)$record;
 
