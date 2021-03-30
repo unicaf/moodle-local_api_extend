@@ -62,7 +62,7 @@ class api_extend extends external_api
         $context = context_system::instance();
         require_capability('mod/assign:view', $context);
 
-        $sql = "SELECT a.id, a.course, a.name, a.intro, a.duedate, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
+        $sql = "SELECT a.id, a.course, a.name, a.intro, a.grade, a.duedate, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
                   FROM {assign} a
             INNER JOIN {course_modules} cm ON cm.course = a.course AND cm.instance = a.id
             INNER JOIN {modules} m ON m.id = cm.module
@@ -127,7 +127,7 @@ class api_extend extends external_api
         $context = context_system::instance();
         require_capability('mod/quiz:view', $context);
 
-        $sql = "SELECT q.id, q.course, q.name, q.intro, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
+        $sql = "SELECT q.id, q.course, q.name, q.intro, q.grade, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
                   FROM {quiz} q
             INNER JOIN {course_modules} cm ON cm.course = q.course AND cm.instance = q.id
             INNER JOIN {modules} m ON m.id = cm.module
