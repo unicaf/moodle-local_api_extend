@@ -62,7 +62,7 @@ class api_extend extends external_api
         $context = context_system::instance();
         require_capability('mod/assign:view', $context);
 
-        $sql = "SELECT a.id, a.course, a.name, a.intro, a.grade, a.duedate, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
+        $sql = "SELECT a.id, cm.idnumber, a.course, a.name, a.intro, a.grade, a.duedate, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
                   FROM {assign} a
             INNER JOIN {course_modules} cm ON cm.course = a.course AND cm.instance = a.id
             INNER JOIN {modules} m ON m.id = cm.module
@@ -84,6 +84,7 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Assignment id'),
+                'idnumber' => new external_value(PARAM_INT, 'ID Number'),
                 'course' => new external_value(PARAM_INT, 'Course id'),
                 'name' => new external_value(PARAM_TEXT, 'Assignment name'),
                 'intro' => new external_value(PARAM_RAW, 'Intro Text'),
@@ -128,7 +129,7 @@ class api_extend extends external_api
         $context = context_system::instance();
         require_capability('mod/quiz:view', $context);
 
-        $sql = "SELECT q.id, q.course, q.name, q.intro, q.grade, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
+        $sql = "SELECT q.id, cm.idnumber, q.course, q.name, q.intro, q.grade, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
                   FROM {quiz} q
             INNER JOIN {course_modules} cm ON cm.course = q.course AND cm.instance = q.id
             INNER JOIN {modules} m ON m.id = cm.module
@@ -150,6 +151,7 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Quiz id'),
+                'idnumber' => new external_value(PARAM_INT, 'ID Number'),
                 'course' => new external_value(PARAM_INT, 'Course id'),
                 'name' => new external_value(PARAM_TEXT, 'Quiz name'),
                 'intro' => new external_value(PARAM_RAW, 'Intro Text'),
