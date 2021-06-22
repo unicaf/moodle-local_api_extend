@@ -70,7 +70,6 @@ class api_extend extends external_api
                  WHERE a.id = :id AND m.name = :module";
 
         $record = $DB->get_record_sql($sql, ['itemtype' => 'mod', 'id' => $params['instanceid'], 'module' => 'assign'], MUST_EXIST);
-        error_log(json_encode((array)$record));
 
         return (array)$record;
     }
