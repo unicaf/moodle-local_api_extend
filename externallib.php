@@ -70,6 +70,7 @@ class api_extend extends external_api
                  WHERE a.id = :id AND m.name = :module";
 
         $record = $DB->get_record_sql($sql, ['itemtype' => 'mod', 'id' => $params['instanceid'], 'module' => 'assign'], MUST_EXIST);
+        error_log(json_encode((array)$record));
 
         return (array)$record;
     }
@@ -84,7 +85,7 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Assignment id'),
-                'idnumber' => new external_value(PARAM_INT, 'ID Number'),
+                'idnumber' => new external_value(PARAM_TEXT, 'ID Number', VALUE_OPTIONAL),
                 'course' => new external_value(PARAM_INT, 'Course id'),
                 'name' => new external_value(PARAM_TEXT, 'Assignment name'),
                 'intro' => new external_value(PARAM_RAW, 'Intro Text'),
