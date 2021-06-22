@@ -85,7 +85,7 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Assignment id'),
-                'idnumber' => new external_value(PARAM_TEXT, 'ID Number', VALUE_OPTIONAL),
+                'idnumber' => new external_value(PARAM_TEXT, 'ID Number'),
                 'course' => new external_value(PARAM_INT, 'Course id'),
                 'name' => new external_value(PARAM_TEXT, 'Assignment name'),
                 'intro' => new external_value(PARAM_RAW, 'Intro Text'),
@@ -152,7 +152,7 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Quiz id'),
-                'idnumber' => new external_value(PARAM_INT, 'ID Number'),
+                'idnumber' => new external_value(PARAM_TEXT, 'ID Number'),
                 'course' => new external_value(PARAM_INT, 'Course id'),
                 'name' => new external_value(PARAM_TEXT, 'Quiz name'),
                 'intro' => new external_value(PARAM_RAW, 'Intro Text'),
