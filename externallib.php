@@ -410,9 +410,11 @@ class api_extend extends external_api
         $capability = 'mod/assign:view';
         require_capability($capability, $context);
 
-        $sql = "SELECT gg.id, gi.courseid, gg.finalgrade, gi.iteminstance, gi.itemmodule
+        $sql = "SELECT gg.id, gi.courseid, gg.finalgrade, gi.iteminstance, gi.itemmodule, a.markingworkflow, asf.workflowstate
                   FROM {grade_items} gi
             INNER JOIN {grade_grades} gg ON gg.itemid = gi.id
+            INNER JOIN {assign} a ON a.course = gi.courseid AND a.name = gi.itemname 
+            INNER JOIN {assign_user_flags}  asf ON asf.assignment = gi.iteminstance
                  WHERE gi.id = :id AND gg.userid = :userid";
 
         $record = $DB->get_record_sql($sql, ['id' => $params['gradeitemid'], 'userid' => $params['userid']], MUST_EXIST);
@@ -423,6 +425,8 @@ class api_extend extends external_api
             'courseid' => $record->courseid,
             'iteminstance' => $record->iteminstance,
             'itemmodule' => $record->itemmodule,
+            'markingworkflow' => $record->markingworkflow,
+            'workflowstate' => $record->workflowstate,
         ];
     }
 
@@ -440,6 +444,8 @@ class api_extend extends external_api
                 'courseid' => new external_value(PARAM_INT, 'The Course Id'),
                 'iteminstance' => new external_value(PARAM_INT, 'The Item Instance Id'),
                 'itemmodule' => new external_value(PARAM_TEXT, 'The Item Module'),
+                'markingworkflow' => new external_value(PARAM_INT, 'The Status of Marking Workflow'),
+                'workflowstate' => new external_value(PARAM_TEXT, 'The State of Marking Workflow'),
             ]
         );
     }
