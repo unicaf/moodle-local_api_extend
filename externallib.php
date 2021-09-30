@@ -413,11 +413,12 @@ class api_extend extends external_api
         $sql = "SELECT gg.id, gi.courseid, gg.finalgrade, gi.iteminstance, gi.itemmodule, a.markingworkflow, asf.workflowstate
                   FROM {grade_items} gi
             INNER JOIN {grade_grades} gg ON gg.itemid = gi.id
-            INNER JOIN {assign} a ON a.course = gi.courseid AND a.name = gi.itemname 
-            INNER JOIN {assign_user_flags}  asf ON asf.assignment = gi.iteminstance
+            LEFT JOIN {assign} a ON a.course = gi.courseid AND a.id = gi.iteminstance AND gi.itemmodule = :itemmodule
+            LEFT JOIN {assign_user_flags}  asf ON asf.assignment = gi.iteminstance AND asf.userid= gg.userid
                  WHERE gi.id = :id AND gg.userid = :userid";
 
-        $record = $DB->get_record_sql($sql, ['id' => $params['gradeitemid'], 'userid' => $params['userid']], MUST_EXIST);
+        $record = $DB->get_record_sql($sql, ['id' => $params['gradeitemid'], 'userid' => $params['userid'],
+            'itemmodule' => 'assign'], MUST_EXIST);
 
         return [
             'id' => $record->id,
