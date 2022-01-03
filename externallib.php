@@ -227,6 +227,7 @@ class api_extend extends external_api
                 'grademax' => $info->grademax,
                 'gradepass' => $info->gradepass,
                 'weight' => $info->weight,
+                'deletioninprogress' => $info->deletioninprogress
             ];
 
         }
@@ -257,6 +258,7 @@ class api_extend extends external_api
                     'grademax' => new external_value(PARAM_FLOAT, 'Max Grade'),
                     'gradepass' => new external_value(PARAM_FLOAT, 'Passing Grade'),
                     'weight' => new external_value(PARAM_FLOAT, 'Weight'),
+                    'deletioninprogress' => new external_value(PARAM_INT, 'Deletion In Progress'),
                 ]
             )
         );

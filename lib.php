@@ -37,7 +37,7 @@ function get_course_mod_info($instanceId, $module)
 {
     global $DB;
 
-    $sql = "SELECT m.*, gi.grademax, gi.gradepass, cm.idnumber, gi.aggregationcoef AS weight
+    $sql = "SELECT m.*, gi.grademax, gi.gradepass, cm.idnumber, gi.aggregationcoef AS weight, cm.deletioninprogress
                   FROM {" . $module . "} m
                   INNER JOIN {course_modules} cm ON cm.course = m.course AND cm.instance = m.id
                   INNER JOIN {grade_items} gi ON gi.itemtype= :itemtype AND gi.itemmodule = :module AND gi.iteminstance = m.id
