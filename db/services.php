@@ -87,6 +87,14 @@ $functions = [
         'description' => 'Update Course Module',
         'capabilities'  => 'moodle/course:update',
         'type' => 'write',
+    ],
+    'api_ext_get_markers_feedback' => [
+        'classname' => 'api_extend',
+        'methodname' => 'get_markers_feedback',
+        'classpath' => 'local/api_extend/externallib.php',
+        'description' => 'Get Markers feedbacks',
+        'capabilities'  => 'mod/assign:view',
+        'type' => 'read',
     ]
 ];
 
@@ -102,6 +110,7 @@ $services = [
             'api_ext_get_grade',
             'api_ext_get_roleid_by_shortname',
             'api_ext_update_course_module',
+            'api_ext_get_markers_feedback'
         ],
         'restrictedusers' => 1,
         'enabled' => 1,

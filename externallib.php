@@ -637,4 +637,69 @@ class api_extend extends external_api
         );
     }
 
+
+    /**
+     * *
+     * @param $assignment
+     * @param $userid
+     * @return array
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception
+     */
+    public function get_markers_feedback($assignment, $userid) {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(
+            self::get_markers_feedback_parameters(),
+            ['assignment' => $assignment,
+                'userid' => $userid]
+        );
+
+        $context = context_system::instance();
+
+        $capability = 'mod/assign:view';
+        require_capability($capability, $context);
+
+        $itemid = $DB->get_record('assign_grades', ['assignment' => $params['assignment'], 'userid' => $params['userid']], 'id');
+
+        $instanceid = $DB->get_record_sql('SELECT id FROM {grading_instances} WHERE itemid = :itemid ORDER BY id DESC LIMIT 1', ['itemid' => $itemid->id]);
+
+        $filings = $DB->get_records('gradingform_guide_fillings', ['instanceid' => $instanceid->id], null, '*');
+
+        if(empty($filings)) return [];
+        $data = [];
+        foreach($filings as $marker) {
+            $data[$marker->criterionid]['feedback'] = $marker->remark;
+            $criterion = $DB->get_record('gradingform_guide_criteria', ['id' => $marker->criterionid], 'shortname');
+            $data[$marker->criterionid]['criterion'] = $criterion->shortname;
+        }
+        return $data;
+    }
+
+    /**
+     * @return external_function_parameters
+     */
+    public static function get_markers_feedback_parameters()
+    {
+        return new external_function_parameters([
+            'assignment' => new external_value(PARAM_INT, 'The assignment id'),
+            'userid' => new external_value(PARAM_INT, 'The user id'),
+        ]);
+    }
+
+    /**
+     * @return external_multiple_structure
+     */
+    public static function get_markers_feedback_returns(): external_multiple_structure
+    {
+        return new external_multiple_structure(
+            new external_single_structure([
+                'criterion' => new external_value(PARAM_RAW, 'criterion remark'),
+                'feedback' => new external_value(PARAM_RAW, 'Feedback'),
+            ])
+        );
+    }
+
 }
