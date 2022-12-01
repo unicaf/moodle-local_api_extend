@@ -647,7 +647,7 @@ class api_extend extends external_api
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public function get_markers_feedback($assignment, $userid) {
+    public static function get_markers_feedback($assignment, $userid) {
         global $DB;
 
         //Parameter validation
