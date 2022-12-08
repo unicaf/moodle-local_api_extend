@@ -714,7 +714,7 @@ class api_extend extends external_api
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The assignment id'),
             'courseid' => new external_value(PARAM_INT, 'The course id'),
-            'duedate' => new external_value(PARAM_ALPHANUMEXT, 'The due date')
+            'duedate' => new external_value(PARAM_INT, 'The due date')
         ]);
     }
 
