@@ -95,6 +95,14 @@ $functions = [
         'description' => 'Get Markers feedbacks',
         'capabilities'  => 'mod/assign:view',
         'type' => 'read',
+    ],
+    'api_ext_update_assessment' => [
+        'classname' => 'api_extend',
+        'methodname' => 'update_assessment',
+        'classpath' => 'local/api_extend/externallib.php',
+        'description' => 'Update Course Assessment',
+        'capabilities'  => 'moodle/course:update',
+        'type' => 'write',
     ]
 ];
 
