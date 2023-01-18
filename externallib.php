@@ -714,7 +714,8 @@ class api_extend extends external_api
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The assignment id'),
             'courseid' => new external_value(PARAM_INT, 'The course id'),
-            'duedate' => new external_value(PARAM_INT, 'The due date')
+            'duedate' => new external_value(PARAM_INT, 'The due date'),
+            'module_type' => new external_value(PARAM_TEXT, 'The module type')
         ]);
     }
 
@@ -724,12 +725,13 @@ class api_extend extends external_api
      * @param $instanceid
      * @param $courseid
      * @param $duedate
+     * @param $module_type
      * @return array | false
      * @throws dml_exception
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function update_assessment($instanceid, $courseid, $duedate)
+    public static function update_assessment($instanceid, $courseid, $duedate, $module_type)
     {
         global $DB;
 
@@ -740,17 +742,22 @@ class api_extend extends external_api
                 'instanceid' => $instanceid,
                 'courseid' => $courseid,
                 'duedate' => $duedate,
+                'module_type' => $module_type
             ]
         );
 
         $context = context_system::instance();
         require_capability('moodle/course:update', $context);
 
-        $sql = "SELECT a.id
-                  FROM {assign} a
-                 WHERE a.id = :id AND a.course = :courseid";
+        $table = $module_type;
 
-        $record = $DB->get_record_sql($sql, ['id' => $params['instanceid'], 'courseid' => $params['courseid']], MUST_EXIST);
+        $sql = "SELECT a.id
+                  FROM {" . $table . "} a
+            INNER JOIN {course_modules} cm ON cm.course = a.course AND cm.instance = a.id
+            INNER JOIN {modules} m ON m.id = cm.module
+                 WHERE a.id = :id AND m.name = :module";
+
+        $record = $DB->get_record_sql($sql, ['id' => $params['instanceid'], 'courseid' => $params['courseid'], 'module' => $module_type], MUST_EXIST);
 
         if(empty($record)) {
             return false;
@@ -760,7 +767,7 @@ class api_extend extends external_api
         $rec->id = $record->id;
         $rec->duedate = $duedate;
 
-        $DB->update_record('assign', $rec);
+        $DB->update_record($table, $rec);
 
         return (array)$record;
 
