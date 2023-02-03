@@ -222,7 +222,7 @@ class api_extend extends external_api
                 'intro' => $info->intro,
                 'duedate' => isset($info->duedate) ? $info->duedate : false,
                 'grade' => $info->grade,
-                'visible' => $info->visibles,
+                'visible' => $info->visible,
                 'module_type' => $record->module_name,
                 'grademax' => $info->grademax,
                 'gradepass' => $info->gradepass,
@@ -702,4 +702,188 @@ class api_extend extends external_api
         );
     }
 
+
+    /**
+     * Update Assign Activity
+     *
+     * @param int $instance_id
+     * @param int|null $starting_date
+     * @param int|null $deadline
+     * @param int|null $cut_off
+     * @return array | false
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception
+     */
+    public static function update_assign_activity(int $instance_id, int $starting_date = null, int $deadline = null, int $cut_off = null)
+    {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(
+            self::update_assign_activity_parameters(),
+            [
+                'instanceid' => $instance_id,
+                'starting_date' => $starting_date,
+                'deadline' => $deadline,
+                'cut_off' => $cut_off
+            ]
+        );
+
+        $context = context_system::instance();
+
+        require_capability('moodle/course:update', $context);
+        $table = 'assign';
+        $sql = "SELECT a.id
+                FROM {" . $table . "} a
+                WHERE a.id = :id";
+
+        $record = $DB->get_record_sql($sql, ['id' => $instance_id, 'module' => $table], MUST_EXIST);
+
+        if(empty($record)) {
+            return false;
+        }
+
+        $has_something_to_update = false;
+        $rec = new stdclass();
+        $rec->id = $record->id;
+        if($starting_date !== null) {
+            $has_something_to_update = true;
+            $rec->allowsubmissionsfromdate = $starting_date;
+        }
+        if($deadline !== null) {
+            $has_something_to_update = true;
+            $rec->duedate = $deadline;
+        }
+        if($cut_off !== null) {
+            $has_something_to_update = true;
+            $rec->cutoffdate = $cut_off;
+        }
+
+        if($has_something_to_update) {
+            $DB->update_record($table, $rec);
+            return (array)$record;
+        }
+
+        // nothing to update
+        return false;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_single_structure
+     */
+    public static function update_assign_activity_returns(): external_single_structure
+    {
+        return new external_single_structure(
+            [
+                'id' => new external_value(PARAM_INT, 'The course assessment id'),
+            ]
+        );
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function update_assign_activity_parameters(): external_function_parameters
+    {
+        return new external_function_parameters([
+            'instanceid' => new external_value(PARAM_INT, 'The activity id'),
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', false),
+            'deadline' => new external_value(PARAM_INT, 'The soft deadline of activity', false),
+            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', false)
+        ]);
+    }
+
+    /**
+     * Update Assign Activity
+     *
+     * @param int $instance_id
+     * @param int|null $starting_date
+     * @param int|null $cut_off
+     * @return array | false
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception
+     */
+    public static function update_quiz_activity(int $instance_id, int $starting_date = null, int $cut_off = null)
+    {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(
+            self::update_quiz_activity_parameters(),
+            [
+                'instanceid' => $instance_id,
+                'starting_date' => $starting_date,
+                'cut_off' => $cut_off
+            ]
+        );
+
+        $context = context_system::instance();
+
+        require_capability('moodle/course:update', $context);
+        $table = 'quiz';
+        $sql = "SELECT a.id
+                FROM {" . $table . "} a
+                WHERE a.id = :id";
+
+        $record = $DB->get_record_sql($sql, ['id' => $instance_id, 'module' => $table], MUST_EXIST);
+
+        if(empty($record)) {
+            return false;
+        }
+
+        $has_something_to_update = false;
+        $rec = new stdclass();
+        $rec->id = $record->id;
+        if($starting_date !== null) {
+            $has_something_to_update = true;
+            $rec->timeopen = $starting_date;
+        }
+
+        if($cut_off !== null) {
+            $has_something_to_update = true;
+            $rec->timeclose = $cut_off;
+        }
+
+        if($has_something_to_update) {
+            $DB->update_record($table, $rec);
+            return (array)$record;
+        }
+
+        // nothing to update
+        return false;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_single_structure
+     */
+    public static function update_quiz_activity_returns(): external_single_structure
+    {
+        return new external_single_structure(
+            [
+                'id' => new external_value(PARAM_INT, 'The course assessment id'),
+            ]
+        );
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function update_quiz_activity_parameters(): external_function_parameters
+    {
+        return new external_function_parameters([
+            'instanceid' => new external_value(PARAM_INT, 'The activity id'),
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', false),
+            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', false)
+        ]);
+    }
 }

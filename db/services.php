@@ -95,6 +95,22 @@ $functions = [
         'description' => 'Get Markers feedbacks',
         'capabilities'  => 'mod/assign:view',
         'type' => 'read',
+    ],
+    'api_ext_update_assign_activity' => [
+        'classname' => 'api_extend',
+        'methodname' => 'update_assign_activity',
+        'classpath' => 'local/api_extend/externallib.php',
+        'description' => 'Update Activities Dates',
+        'capabilities'  => 'moodle/course:update',
+        'type' => 'write',
+    ],
+    'api_ext_update_quiz_activity' => [
+        'classname' => 'api_extend',
+        'methodname' => 'update_quiz_activity',
+        'classpath' => 'local/api_extend/externallib.php',
+        'description' => 'Update Quiz Dates',
+        'capabilities'  => 'moodle/course:update',
+        'type' => 'write',
     ]
 ];
 
@@ -110,7 +126,9 @@ $services = [
             'api_ext_get_grade',
             'api_ext_get_roleid_by_shortname',
             'api_ext_update_course_module',
-            'api_ext_get_markers_feedback'
+            'api_ext_get_markers_feedback',
+            'api_ext_update_assign_activity',
+            'api_ext_update_quiz_activity'
         ],
         'restrictedusers' => 1,
         'enabled' => 1,
