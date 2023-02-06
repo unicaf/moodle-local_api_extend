@@ -412,17 +412,27 @@ class api_extend extends external_api
         $capability = 'mod/assign:view';
         require_capability($capability, $context);
 
-        $sql = "SELECT gg.id, gi.courseid, gg.finalgrade, gi.iteminstance, gi.itemmodule, a.markingworkflow, asf.workflowstate, ag.grade
+        $sql = "SELECT gg.id, gi.courseid, gg.finalgrade, gi.iteminstance, gi.itemmodule, a.markingworkflow, asf.workflowstate
                   FROM {grade_items} gi
             INNER JOIN {grade_grades} gg ON gg.itemid = gi.id
             LEFT JOIN {assign} a ON a.course = gi.courseid AND a.id = gi.iteminstance AND gi.itemmodule = :itemmodule
             LEFT JOIN {assign_user_flags}  asf ON asf.assignment = gi.iteminstance AND asf.userid= gg.userid
-            LEFT JOIN {assign_grades} ag ON ag.assignment = asf.assignment AND ag.userid = asf.userid
-                 WHERE gi.id = :id AND gg.userid = :userid";
+            WHERE gi.id = :id AND gg.userid = :userid";
 
         $record = $DB->get_record_sql($sql, ['id' => $params['gradeitemid'], 'userid' => $params['userid'],
             'itemmodule' => 'assign'], MUST_EXIST);
+        
+        if ($record === false) {
+            throw new moodle_exception('notexist', 'Grade does not exist');
+        }
+        
+        $sql_grade = "SELECT grade FROM {assign_grades} WHERE assignment= :assignment AND userid= :userid ORDER BY id DESC LIMIT 1";
+        $record_grade = $DB->get_record_sql($sql_grade, ['assignment' => $record->iteminstance, 'userid' => $params['userid']], MUST_EXIST);
 
+        if ($record_grade === false) {
+            throw new moodle_exception('notexist', 'Grade assign does not exist');
+        }
+        
         return [
             'id' => $record->id,
             'grade' => $record->finalgrade,
@@ -431,7 +441,7 @@ class api_extend extends external_api
             'itemmodule' => $record->itemmodule,
             'markingworkflow' => $record->markingworkflow,
             'workflowstate' => $record->workflowstate,
-            'assign_grade' => $record->grade,
+            'assign_grade' => $record_grade->grade,
         ];
     }
 
