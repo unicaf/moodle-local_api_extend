@@ -84,7 +84,7 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Assignment id'),
-                'idnumber' => new external_value(PARAM_INT, 'ID Number'),
+                'idnumber' => new external_value(PARAM_TEXT, 'ID Number'),
                 'course' => new external_value(PARAM_INT, 'Course id'),
                 'name' => new external_value(PARAM_TEXT, 'Assignment name'),
                 'intro' => new external_value(PARAM_RAW, 'Intro Text'),
@@ -151,7 +151,7 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Quiz id'),
-                'idnumber' => new external_value(PARAM_INT, 'ID Number'),
+                'idnumber' => new external_value(PARAM_TEXT, 'ID Number'),
                 'course' => new external_value(PARAM_INT, 'Course id'),
                 'name' => new external_value(PARAM_TEXT, 'Quiz name'),
                 'intro' => new external_value(PARAM_RAW, 'Intro Text'),
@@ -222,11 +222,12 @@ class api_extend extends external_api
                 'intro' => $info->intro,
                 'duedate' => isset($info->duedate) ? $info->duedate : false,
                 'grade' => $info->grade,
-                'visible' => $info->visibles,
+                'visible' => $info->visible,
                 'module_type' => $record->module_name,
                 'grademax' => $info->grademax,
                 'gradepass' => $info->gradepass,
                 'weight' => $info->weight,
+                'deletioninprogress' => $info->deletioninprogress
             ];
 
         }
@@ -257,6 +258,7 @@ class api_extend extends external_api
                     'grademax' => new external_value(PARAM_FLOAT, 'Max Grade'),
                     'gradepass' => new external_value(PARAM_FLOAT, 'Passing Grade'),
                     'weight' => new external_value(PARAM_FLOAT, 'Weight'),
+                    'deletioninprogress' => new external_value(PARAM_INT, 'Deletion In Progress'),
                 ]
             )
         );
@@ -410,12 +412,16 @@ class api_extend extends external_api
         $capability = 'mod/assign:view';
         require_capability($capability, $context);
 
-        $sql = "SELECT gg.id, gi.courseid, gg.finalgrade, gi.iteminstance, gi.itemmodule
+        $sql = "SELECT gg.id, gi.courseid, gg.finalgrade, gi.iteminstance, gi.itemmodule, a.markingworkflow, asf.workflowstate, ag.grade
                   FROM {grade_items} gi
             INNER JOIN {grade_grades} gg ON gg.itemid = gi.id
+            LEFT JOIN {assign} a ON a.course = gi.courseid AND a.id = gi.iteminstance AND gi.itemmodule = :itemmodule
+            LEFT JOIN {assign_user_flags}  asf ON asf.assignment = gi.iteminstance AND asf.userid= gg.userid
+            LEFT JOIN {assign_grades} ag ON ag.assignment = asf.assignment AND ag.userid = asf.userid
                  WHERE gi.id = :id AND gg.userid = :userid";
 
-        $record = $DB->get_record_sql($sql, ['id' => $params['gradeitemid'], 'userid' => $params['userid']], MUST_EXIST);
+        $record = $DB->get_record_sql($sql, ['id' => $params['gradeitemid'], 'userid' => $params['userid'],
+            'itemmodule' => 'assign'], MUST_EXIST);
 
         return [
             'id' => $record->id,
@@ -423,6 +429,9 @@ class api_extend extends external_api
             'courseid' => $record->courseid,
             'iteminstance' => $record->iteminstance,
             'itemmodule' => $record->itemmodule,
+            'markingworkflow' => $record->markingworkflow,
+            'workflowstate' => $record->workflowstate,
+            'assign_grade' => $record->grade,
         ];
     }
 
@@ -440,6 +449,9 @@ class api_extend extends external_api
                 'courseid' => new external_value(PARAM_INT, 'The Course Id'),
                 'iteminstance' => new external_value(PARAM_INT, 'The Item Instance Id'),
                 'itemmodule' => new external_value(PARAM_TEXT, 'The Item Module'),
+                'markingworkflow' => new external_value(PARAM_INT, 'The Status of Marking Workflow'),
+                'workflowstate' => new external_value(PARAM_TEXT, 'The State of Marking Workflow'),
+                'assign_grade' => new external_value(PARAM_TEXT, 'The Grade even when it\'s not released'),
             ]
         );
     }
@@ -625,4 +637,253 @@ class api_extend extends external_api
         );
     }
 
+
+    /**
+     * *
+     * @param $assignment
+     * @param $userid
+     * @return array
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception
+     */
+    public static function get_markers_feedback($assignment, $userid) {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(
+            self::get_markers_feedback_parameters(),
+            ['assignment' => $assignment,
+                'userid' => $userid]
+        );
+
+        $context = context_system::instance();
+
+        $capability = 'mod/assign:view';
+        require_capability($capability, $context);
+
+        $itemid = $DB->get_record('assign_grades', ['assignment' => $params['assignment'], 'userid' => $params['userid']], 'id');
+
+        $instanceid = $DB->get_record_sql('SELECT id FROM {grading_instances} WHERE itemid = :itemid ORDER BY id DESC LIMIT 1', ['itemid' => $itemid->id]);
+
+        $filings = $DB->get_records('gradingform_guide_fillings', ['instanceid' => $instanceid->id], null, '*');
+
+        if(empty($filings)) return [];
+        $data = [];
+        foreach($filings as $marker) {
+            $data[$marker->criterionid]['feedback'] = $marker->remark;
+            $criterion = $DB->get_record('gradingform_guide_criteria', ['id' => $marker->criterionid], 'shortname');
+            $data[$marker->criterionid]['criterion'] = $criterion->shortname;
+        }
+        return $data;
+    }
+
+    /**
+     * @return external_function_parameters
+     */
+    public static function get_markers_feedback_parameters()
+    {
+        return new external_function_parameters([
+            'assignment' => new external_value(PARAM_INT, 'The assignment id'),
+            'userid' => new external_value(PARAM_INT, 'The user id'),
+        ]);
+    }
+
+    /**
+     * @return external_multiple_structure
+     */
+    public static function get_markers_feedback_returns(): external_multiple_structure
+    {
+        return new external_multiple_structure(
+            new external_single_structure([
+                'criterion' => new external_value(PARAM_RAW, 'criterion remark'),
+                'feedback' => new external_value(PARAM_RAW, 'Feedback'),
+            ])
+        );
+    }
+
+
+    /**
+     * Update Assign Activity
+     *
+     * @param int $instance_id
+     * @param int|null $starting_date
+     * @param int|null $deadline
+     * @param int|null $cut_off
+     * @return array | false
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception
+     */
+    public static function update_assign_activity(int $instance_id, int $starting_date = null, int $deadline = null, int $cut_off = null)
+    {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(
+            self::update_assign_activity_parameters(),
+            [
+                'instanceid' => $instance_id,
+                'starting_date' => $starting_date,
+                'deadline' => $deadline,
+                'cut_off' => $cut_off
+            ]
+        );
+
+        $context = context_system::instance();
+
+        require_capability('moodle/course:update', $context);
+        $table = 'assign';
+        $sql = "SELECT a.id
+                FROM {" . $table . "} a
+                WHERE a.id = :id";
+
+        $record = $DB->get_record_sql($sql, ['id' => $instance_id, 'module' => $table], MUST_EXIST);
+
+        if(empty($record)) {
+            return false;
+        }
+
+        $has_something_to_update = false;
+        $rec = new stdclass();
+        $rec->id = $record->id;
+        if($starting_date !== null) {
+            $has_something_to_update = true;
+            $rec->allowsubmissionsfromdate = $starting_date;
+        }
+        if($deadline !== null) {
+            $has_something_to_update = true;
+            $rec->duedate = $deadline;
+        }
+        if($cut_off !== null) {
+            $has_something_to_update = true;
+            $rec->cutoffdate = $cut_off;
+        }
+
+        if($has_something_to_update) {
+            $DB->update_record($table, $rec);
+            return (array)$record;
+        }
+
+        // nothing to update
+        return false;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_single_structure
+     */
+    public static function update_assign_activity_returns(): external_single_structure
+    {
+        return new external_single_structure(
+            [
+                'id' => new external_value(PARAM_INT, 'The course assessment id'),
+            ]
+        );
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function update_assign_activity_parameters(): external_function_parameters
+    {
+        return new external_function_parameters([
+            'instanceid' => new external_value(PARAM_INT, 'The activity id'),
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', false),
+            'deadline' => new external_value(PARAM_INT, 'The soft deadline of activity', false),
+            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', false)
+        ]);
+    }
+
+    /**
+     * Update Assign Activity
+     *
+     * @param int $instance_id
+     * @param int|null $starting_date
+     * @param int|null $cut_off
+     * @return array | false
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception
+     */
+    public static function update_quiz_activity(int $instance_id, int $starting_date = null, int $cut_off = null)
+    {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(
+            self::update_quiz_activity_parameters(),
+            [
+                'instanceid' => $instance_id,
+                'starting_date' => $starting_date,
+                'cut_off' => $cut_off
+            ]
+        );
+
+        $context = context_system::instance();
+
+        require_capability('moodle/course:update', $context);
+        $table = 'quiz';
+        $sql = "SELECT a.id
+                FROM {" . $table . "} a
+                WHERE a.id = :id";
+
+        $record = $DB->get_record_sql($sql, ['id' => $instance_id, 'module' => $table], MUST_EXIST);
+
+        if(empty($record)) {
+            return false;
+        }
+
+        $has_something_to_update = false;
+        $rec = new stdclass();
+        $rec->id = $record->id;
+        if($starting_date !== null) {
+            $has_something_to_update = true;
+            $rec->timeopen = $starting_date;
+        }
+
+        if($cut_off !== null) {
+            $has_something_to_update = true;
+            $rec->timeclose = $cut_off;
+        }
+
+        if($has_something_to_update) {
+            $DB->update_record($table, $rec);
+            return (array)$record;
+        }
+
+        // nothing to update
+        return false;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_single_structure
+     */
+    public static function update_quiz_activity_returns(): external_single_structure
+    {
+        return new external_single_structure(
+            [
+                'id' => new external_value(PARAM_INT, 'The course assessment id'),
+            ]
+        );
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function update_quiz_activity_parameters(): external_function_parameters
+    {
+        return new external_function_parameters([
+            'instanceid' => new external_value(PARAM_INT, 'The activity id'),
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', false),
+            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', false)
+        ]);
+    }
 }
