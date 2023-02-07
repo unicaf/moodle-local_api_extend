@@ -422,16 +422,10 @@ class api_extend extends external_api
         $record = $DB->get_record_sql($sql, ['id' => $params['gradeitemid'], 'userid' => $params['userid'],
             'itemmodule' => 'assign'], MUST_EXIST);
         
-        if ($record === false) {
-            throw new moodle_exception('notexist', 'Grade does not exist');
-        }
         
         $sql_grade = "SELECT grade FROM {assign_grades} WHERE assignment= :assignment AND userid= :userid ORDER BY id DESC LIMIT 1";
-        $record_grade = $DB->get_record_sql($sql_grade, ['assignment' => $record->iteminstance, 'userid' => $params['userid']], MUST_EXIST);
+        $record_grade = $DB->get_record_sql($sql_grade, ['assignment' => $record->iteminstance, 'userid' => $params['userid']]);
 
-        if ($record_grade === false) {
-            throw new moodle_exception('notexist', 'Grade assign does not exist');
-        }
         
         return [
             'id' => $record->id,
