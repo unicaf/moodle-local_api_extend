@@ -111,6 +111,14 @@ $functions = [
         'description' => 'Update Quiz Dates',
         'capabilities'  => 'moodle/course:update',
         'type' => 'write',
+    ],
+    'api_ext_get_override' => [
+        'classname' => 'api_extend',
+        'methodname' => 'get_override',
+        'classpath' => 'local/api_extend/externallib.php',
+        'description' => 'Get assign and quiz overrides',
+        'capabilities'  => 'mod/assign:view',
+        'type' => 'read',
     ]
 ];
 
@@ -128,7 +136,8 @@ $services = [
             'api_ext_update_course_module',
             'api_ext_get_markers_feedback',
             'api_ext_update_assign_activity',
-            'api_ext_update_quiz_activity'
+            'api_ext_update_quiz_activity',
+            'api_ext_get_override'
         ],
         'restrictedusers' => 1,
         'enabled' => 1,

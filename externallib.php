@@ -30,13 +30,102 @@ require_once($CFG->dirroot . "/local/api_extend/lib.php");
  */
 class api_extend extends external_api
 {
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function get_override_parameters(): external_function_parameters
+    {
+        return new external_function_parameters([
+            'module_type' => new external_value(PARAM_TEXT, 'The module type'),
+            'instanceid' => new external_value(PARAM_INT, 'The instance id'),
+            'userorgroup' => new external_value(PARAM_TEXT, 'User or group'),
+            'id' => new external_value(PARAM_INT, 'User or group id')
+        ]);
+    }
+
+    /**
+     * Get Single Assign
+     *
+     * @param $module_type
+     * @param $instanceid
+     * @param $userorgroup
+     * @param $id
+     * @return array welcome message
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception
+     */
+    public static function get_override($module_type, $instanceid, $userorgroup, $id): array
+    {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(self::get_override_parameters(), [
+            'module_type' => $module_type,
+            'instanceid' => $instanceid,
+            'userorgroup' => $userorgroup,
+            'id' => $id
+        ]);
+        $parameters = [
+            'assign' => [
+                'columns' => 'a.id, a.duedate, a.cutoffdate',
+                'column' => 'a.' . $params['module_type'] . 'id',
+                ],
+            'quiz' => [
+                'columns' => 'a.id, NULL as duedate, a.timeclose as cutoffdate',
+                'column' => 'a.' . $params['module_type']
+            ]
+        ];
+
+        $values_userorgroup = [
+            'user' => 'a.userid',
+            'group'=> 'a.groupid'
+        ];
+
+        $context = context_system::instance();
+        require_capability('mod/assign:view', $context);
+        $table = $params['module_type'] . '_overrides';
+
+        if(!isset($values_userorgroup[$params['userorgroup']])) {
+            throw new invalid_parameter_exception('Invalid userorgroup given');
+        }
+
+        $sql = "SELECT " . $parameters[$params['module_type']]['columns'] . "
+                  FROM {" . $table . "} a
+                 WHERE " . $parameters[$params['module_type']]['column'] . " = :assignid AND {$values_userorgroup[$params['userorgroup']]} = :id";
+
+        $record = $DB->get_record_sql($sql, [
+            'assignid' => $params['instanceid'],
+            'id' => $params['id']
+        ], MUST_EXIST);
+
+        return (array)$record;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_description
+     */
+    public static function get_override_returns()
+    {
+        return new external_single_structure(
+            [
+                'id' => new external_value(PARAM_INT, 'Assignment id'),
+                'duedate' => new external_value(PARAM_INT, 'Due Date', null, null, true),
+                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date', null, null, true)
+            ]
+        );
+    }
 
     /**
      * Returns description of method parameters
      *
      * @return external_function_parameters
      */
-    public static function get_assign_parameters()
+    public static function get_assign_parameters(): external_function_parameters
     {
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The assignment id')
@@ -52,7 +141,7 @@ class api_extend extends external_api
      * @throws required_capability_exception|dml_exception
      * @throws moodle_exception
      */
-    public static function get_assign($instanceid)
+    public static function get_assign($instanceid): array
     {
         global $DB;
 
@@ -62,7 +151,8 @@ class api_extend extends external_api
         $context = context_system::instance();
         require_capability('mod/assign:view', $context);
 
-        $sql = "SELECT a.id, cm.idnumber, a.course, a.name, a.intro, a.grade, a.duedate, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
+        $sql = "SELECT a.id, cm.idnumber, a.course, a.name, a.intro, a.grade, a.duedate, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight,
+                    a.cutoffdate
                   FROM {assign} a
             INNER JOIN {course_modules} cm ON cm.course = a.course AND cm.instance = a.id
             INNER JOIN {modules} m ON m.id = cm.module
@@ -89,6 +179,7 @@ class api_extend extends external_api
                 'name' => new external_value(PARAM_TEXT, 'Assignment name'),
                 'intro' => new external_value(PARAM_RAW, 'Intro Text'),
                 'duedate' => new external_value(PARAM_INT, 'Due Date'),
+                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date'),
                 'grade' => new external_value(PARAM_FLOAT, 'Grade'),
                 'grademax' => new external_value(PARAM_FLOAT, 'Max Grade'),
                 'gradepass' => new external_value(PARAM_FLOAT, 'Passing Grade'),
@@ -103,7 +194,7 @@ class api_extend extends external_api
      *
      * @return external_function_parameters
      */
-    public static function get_quiz_parameters()
+    public static function get_quiz_parameters(): external_function_parameters
     {
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The quiz id')
