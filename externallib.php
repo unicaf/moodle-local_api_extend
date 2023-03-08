@@ -220,7 +220,7 @@ class api_extend extends external_api
         $context = context_system::instance();
         require_capability('mod/quiz:view', $context);
 
-        $sql = "SELECT q.id, cm.idnumber, q.course, q.name, q.intro, q.grade, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight
+        $sql = "SELECT q.id, cm.idnumber, q.course, q.name, q.intro, q.grade, cm.visible, gi.grademax, gi.gradepass, gi.aggregationcoef AS weight, NULL as duedate, `timeclose` as cutoffdate
                   FROM {quiz} q
             INNER JOIN {course_modules} cm ON cm.course = q.course AND cm.instance = q.id
             INNER JOIN {modules} m ON m.id = cm.module
@@ -251,6 +251,8 @@ class api_extend extends external_api
                 'grademax' => new external_value(PARAM_FLOAT, 'Max Grade'),
                 'gradepass' => new external_value(PARAM_FLOAT, 'Passing Grade'),
                 'weight' => new external_value(PARAM_FLOAT, 'Weight'),
+                'duedate' => new external_value(PARAM_INT, 'Due Date'),
+                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date'),
             ]
         );
     }
