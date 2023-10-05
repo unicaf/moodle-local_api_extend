@@ -763,6 +763,8 @@ class api_extend extends external_api
 
         $instanceid = $DB->get_record_sql('SELECT id FROM {grading_instances} WHERE itemid = :itemid ORDER BY id DESC LIMIT 1', ['itemid' => $itemid->id]);
 
+        if(empty($instanceid)) return [];
+
         $filings = $DB->get_records('gradingform_guide_fillings', ['instanceid' => $instanceid->id], null, '*');
 
         if(empty($filings)) return [];
