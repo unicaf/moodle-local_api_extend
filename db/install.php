@@ -28,7 +28,7 @@ function xmldb_local_api_extend_install()
 
     require_once($CFG->dirroot.'/user/profile/definelib.php');
     require_once($CFG->dirroot.'/user/profile/field/text/define.class.php');
-    require_once($CFG->dirroot.'/local/unicafws/lib.php');
+    require_once($CFG->dirroot.'/local/api_extend/lib.php');
 
     // Get all categories.
     $categories = $DB->get_records('user_info_category', null, 'sortorder ASC');

@@ -123,7 +123,7 @@ $functions = [
     'unicaf_get_roles_by_shortname' => [
         'classname'   => 'unicaf_roles_by_shortname',
         'methodname'  => 'unicaf_get_roleid',
-        'classpath'   => 'local/unicafws/externallib.php',
+        'classpath'   => 'local/api_extend/externallib.php',
         'description' => 'Return ROLE id , search by shortname',
         'type'        => 'read',
     ]
