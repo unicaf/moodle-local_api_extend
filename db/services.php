@@ -119,6 +119,13 @@ $functions = [
         'description' => 'Get assign and quiz overrides',
         'capabilities'  => 'mod/assign:view',
         'type' => 'read',
+    ],
+    'unicaf_get_roles_by_shortname' => [
+        'classname'   => 'unicaf_roles_by_shortname',
+        'methodname'  => 'unicaf_get_roleid',
+        'classpath'   => 'local/unicafws/externallib.php',
+        'description' => 'Return ROLE id , search by shortname',
+        'type'        => 'read',
     ]
 ];
 
@@ -142,5 +149,13 @@ $services = [
         'restrictedusers' => 1,
         'enabled' => 1,
         'shortname' => 'apiextendcalls'
+    ],
+    'UNICAF Webservice' => [
+        'functions' => [
+            'unicaf_get_roles_by_shortname'
+        ],
+        'restrictedusers' => 1,
+        'enabled'=>1,
+        'shortname'=>'getroleid'
     ]
 ];
