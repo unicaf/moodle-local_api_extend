@@ -21,4 +21,4 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$string['pluginname'] = 'API Extend Calls';
+$string['pluginname'] = 'API Extend Calls & Unicaf Webservice';
