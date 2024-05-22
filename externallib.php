@@ -986,3 +986,58 @@ class api_extend extends external_api
         ]);
     }
 }
+
+class unicaf_roles_by_shortname extends external_api {
+
+    /**
+     * Returns description of method parameters
+     * @return external_function_parameters
+     */
+    public static function unicaf_get_roleid_parameters() {
+        return new external_function_parameters(
+            array('shortname' => new external_value(PARAM_TEXT, 'role shortname'))
+        );
+    }
+
+    /**
+     * Returns welcome message
+     * @return string welcome message
+     */
+    public static function unicaf_get_roleid($shortname = 'teacher') {
+        global $CFG, $DB;
+
+        //Parameter validation
+        //REQUIRED
+        $params = self::validate_parameters(self::unicaf_get_roleid_parameters(),
+            array('shortname' => $shortname));
+
+        $context = context_system::instance();
+
+        require_capability('moodle/role:manage', $context);
+
+        $role = $DB->get_record('role', array('shortname'=>$shortname));
+        if ($role === false) {
+            throw new moodle_exception('notexist','Invalid shortname');
+        }
+
+        $resultrole = array('id' => $role->id, 'shortname' => $role->shortname);
+
+        return $resultrole;
+    }
+
+    /**
+     * Returns description of method result value
+     * @return external_description
+     */
+    public static function unicaf_get_roleid_returns() {
+        return new external_single_structure(
+            array(
+                'id' => new external_value(PARAM_TEXT, 'role id'),
+                'shortname' => new external_value(PARAM_TEXT, 'short name'),
+            )
+        );
+    }
+
+
+
+}
