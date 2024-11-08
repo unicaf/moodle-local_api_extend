@@ -307,6 +307,19 @@ class api_extend extends external_api
             }
             $info = get_course_mod_info($record->instance, $record->module_name);
 
+            $category = null;
+            if(!empty($info->categoryid)) {
+                $category_item = $DB->get_record('grade_items',
+                    [
+                        'itemtype' => 'category',
+                        'iteminstance' => $info->categoryid,
+                        'courseid' => $info->course,
+                    ], '*');
+                if($category_item) {
+                    $category = $category_item->iteminfo;
+                }
+            }
+
             $modules[] = [
                 'id' => $info->id,
                 'idnumber' => $info->idnumber,
@@ -320,7 +333,8 @@ class api_extend extends external_api
                 'grademax' => $info->grademax,
                 'gradepass' => $info->gradepass,
                 'weight' => $info->weight,
-                'deletioninprogress' => $info->deletioninprogress
+                'deletioninprogress' => $info->deletioninprogress,
+                'category' => $category
             ];
 
         }
@@ -352,6 +366,7 @@ class api_extend extends external_api
                     'gradepass' => new external_value(PARAM_FLOAT, 'Passing Grade'),
                     'weight' => new external_value(PARAM_FLOAT, 'Weight'),
                     'deletioninprogress' => new external_value(PARAM_INT, 'Deletion In Progress'),
+                    'category' => new external_value(PARAM_TEXT, 'Category value issue'),
                 ]
             )
         );
