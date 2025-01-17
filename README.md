@@ -5,6 +5,7 @@ A moodle plugin which includes some extra API functions.
 ## Available API Call
 * api_ext_get_assign
 * api_ext_get_quiz
+* api_ext_get_h5pactivity
 * api_ext_get_course_modules
 * api_ext_get_assignment_files
 * api_ext_get_grade

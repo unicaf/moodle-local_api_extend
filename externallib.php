@@ -30,6 +30,12 @@ require_once($CFG->dirroot . "/local/api_extend/lib.php");
  */
 class api_extend extends external_api
 {
+
+    private static $assignment_modules = [
+        'assign',
+        'quiz',
+//        'h5pactivity'
+    ];
     /**
      * Returns description of method parameters
      *
@@ -262,6 +268,77 @@ class api_extend extends external_api
      *
      * @return external_function_parameters
      */
+    public static function get_h5pactivity_parameters(): external_function_parameters
+    {
+        return new external_function_parameters([
+            'instanceid' => new external_value(PARAM_INT, 'The h5p id')
+        ]);
+    }
+
+    /**
+     * Get Single Quiz
+     *
+     * @param $instanceid
+     * @return array welcome message
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception|dml_exception
+     * @throws moodle_exception
+     */
+    public static function get_h5pactivity($instanceid)
+    {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(self::get_quiz_parameters(), ['instanceid' => $instanceid]);
+
+        $context = context_system::instance();
+        require_capability('mod/h5pactivity:view', $context);
+
+        $sql = "SELECT h5p.id, cm.idnumber, h5p.course, h5p.name, h5p.intro, h5p.grade, cm.visible, gi.grademax, gi.gradepass, 
+       gi.aggregationcoef AS weight, NULL as duedate
+                  FROM {h5pactivity} h5p
+            INNER JOIN {course_modules} cm ON cm.course = h5p.course AND cm.instance = h5p.id
+            INNER JOIN {modules} m ON m.id = cm.module
+            INNER JOIN {grade_items} gi ON gi.itemtype= :itemtype AND gi.itemmodule = m.name AND gi.iteminstance = h5p.id
+                 WHERE h5p.id = :id AND m.name = :module";
+
+        $record = $DB->get_record_sql($sql, ['itemtype' => 'mod', 'id' => $params['instanceid'], 'module' => 'h5pactivity'], MUST_EXIST);
+
+        return (array)$record;
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_description
+     */
+    public static function get_h5pactivity_returns()
+    {
+        return new external_single_structure(
+            [
+                'id' => new external_value(PARAM_INT, 'h5p id'),
+                'idnumber' => new external_value(PARAM_TEXT, 'ID Number'),
+                'course' => new external_value(PARAM_INT, 'Course id'),
+                'name' => new external_value(PARAM_TEXT, 'Quiz name'),
+                'intro' => new external_value(PARAM_RAW, 'Intro Text'),
+                'visible' => new external_value(PARAM_INT, 'Status'),
+                'grade' => new external_value(PARAM_FLOAT, 'Grade'),
+                'grademax' => new external_value(PARAM_FLOAT, 'Max Grade'),
+                'gradepass' => new external_value(PARAM_FLOAT, 'Passing Grade'),
+                'weight' => new external_value(PARAM_FLOAT, 'Weight'),
+                'duedate' => new external_value(PARAM_INT, 'Due Date'),
+             //   'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date'),
+            ]
+        );
+    }
+
+
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
     public static function get_course_modules_parameters()
     {
         return new external_function_parameters([
@@ -302,7 +379,7 @@ class api_extend extends external_api
         $modules = [];
 
         foreach ($records as $record) {
-            if (!in_array($record->module_name, ['assign', 'quiz'])) {
+            if (!in_array($record->module_name, self::$assignment_modules)) {
                 continue;
             }
             $info = get_course_mod_info($record->instance, $record->module_name);
