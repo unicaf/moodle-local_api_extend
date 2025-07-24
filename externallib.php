@@ -114,8 +114,8 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Assignment id'),
-                'duedate' => new external_value(PARAM_INT, 'Due Date', external_value::VALUE_OPTIONAL),
-                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date', external_value::VALUE_OPTIONAL)
+                'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_OPTIONAL),
+                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date', VALUE_OPTIONAL)
             ]
         );
     }
@@ -906,9 +906,9 @@ class api_extend extends external_api
     {
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The activity id'),
-            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', external_value::VALUE_OPTIONAL),
-            'deadline'      => new external_value(PARAM_INT, 'The soft deadline of activity', external_value::VALUE_OPTIONAL),
-            'cut_off'       => new external_value(PARAM_INT, 'The hard deadline of activity', external_value::VALUE_OPTIONAL)
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_OPTIONAL),
+            'deadline'      => new external_value(PARAM_INT, 'The soft deadline of activity', VALUE_OPTIONAL),
+            'cut_off'       => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_OPTIONAL)
         ]);
     }
 
@@ -996,8 +996,8 @@ class api_extend extends external_api
     {
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The activity id'),
-            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', external_value::VALUE_OPTIONAL),
-            'cut_off'       => new external_value(PARAM_INT, 'The hard deadline of activity', external_value::VALUE_OPTIONAL)
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_OPTIONAL),
+            'cut_off'       => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_OPTIONAL)
         ]);
     }
 }
