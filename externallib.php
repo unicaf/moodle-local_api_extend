@@ -72,7 +72,7 @@ class api_extend extends external_api
             'assign' => [
                 'columns' => 'a.id, a.duedate, a.cutoffdate',
                 'column' => 'a.' . $params['module_type'] . 'id',
-                ],
+            ],
             'quiz' => [
                 'columns' => 'a.id, NULL as duedate, a.timeclose as cutoffdate',
                 'column' => 'a.' . $params['module_type']
@@ -114,8 +114,8 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Assignment id'),
-                'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_OPTIONAL),
-                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date', VALUE_OPTIONAL)
+                'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_OPTIONAL, null),
+                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date', VALUE_OPTIONAL, null)
             ]
         );
     }
@@ -529,12 +529,12 @@ class api_extend extends external_api
 
         $record = $DB->get_record_sql($sql, ['id' => $params['gradeitemid'], 'userid' => $params['userid'],
             'itemmodule' => 'assign'], MUST_EXIST);
-        
-        
+
+
         $sql_grade = "SELECT grade FROM {assign_grades} WHERE assignment= :assignment AND userid= :userid ORDER BY id DESC LIMIT 1";
         $record_grade = $DB->get_record_sql($sql_grade, ['assignment' => $record->iteminstance, 'userid' => $params['userid']]);
 
-        
+
         return [
             'id' => $record->id,
             'grade' => $record->finalgrade,
@@ -906,9 +906,9 @@ class api_extend extends external_api
     {
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The activity id'),
-            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_OPTIONAL),
-            'deadline'      => new external_value(PARAM_INT, 'The soft deadline of activity', VALUE_OPTIONAL),
-            'cut_off'       => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_OPTIONAL)
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_DEFAULT),
+            'deadline' => new external_value(PARAM_INT, 'The soft deadline of activity', VALUE_DEFAULT),
+            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_DEFAULT)
         ]);
     }
 
@@ -996,8 +996,8 @@ class api_extend extends external_api
     {
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The activity id'),
-            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_OPTIONAL),
-            'cut_off'       => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_OPTIONAL)
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_DEFAULT),
+            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_DEFAULT)
         ]);
     }
 }
