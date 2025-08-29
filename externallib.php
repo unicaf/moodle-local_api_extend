@@ -1000,4 +1000,38 @@ class api_extend extends external_api
             'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_DEFAULT)
         ]);
     }
+
+    public static function download_file_parameters() {
+        return new external_function_parameters([
+            'fileid' => new external_value(PARAM_INT, 'The file id')
+        ]);
+    }
+
+    public static function download_file($fileid) {
+        $params = self::validate_parameters(self::download_file_parameters(), ['fileid' => $fileid]);
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        $fs = get_file_storage();
+        $file = $fs->get_file_by_id($params['fileid']);
+        if (!$file) {
+            throw new moodle_exception('filenotfound', 'error');
+        }
+
+        // Output file headers
+        header('Content-Description: File Transfer');
+        header('Content-Type: ' . $file->get_mimetype());
+        header('Content-Disposition: attachment; filename="' . $file->get_filename() . '"');
+        header('Content-Length: ' . $file->get_filesize());
+
+        // Send content and exit
+        echo $file->get_content();
+        die();
+    }
+
+    public static function download_file_returns() {
+        return null;
+    }
+
 }
