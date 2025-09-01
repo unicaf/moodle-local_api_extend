@@ -381,7 +381,8 @@ class api_extend extends external_api
     {
         return new external_function_parameters([
             'assignmentid' => new external_value(PARAM_INT, 'The assignment id'),
-            'userid' => new external_value(PARAM_INT, 'The user id')
+            'userid' => new external_value(PARAM_INT, 'The user id'),
+            'attempt' => new external_value(PARAM_INT, 'The attempt to create assignment files', VALUE_OPTIONAL, -1)
         ]);
     }
 
@@ -396,7 +397,7 @@ class api_extend extends external_api
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function get_assignment_files($assignmentid, $userid)
+    public static function get_assignment_files($assignmentid, $userid, $attempt = -1)
     {
         global $CFG;
 
@@ -405,9 +406,8 @@ class api_extend extends external_api
         //Parameter validation
         $params = self::validate_parameters(
             self::get_assignment_files_parameters(),
-            ['assignmentid' => $assignmentid, 'userid' => $userid]
+            ['assignmentid' => $assignmentid, 'userid' => $userid, 'attempt' => $attempt]
         );
-
 
         $context = context_system::instance();
         require_capability('mod/assign:view', $context);
@@ -416,7 +416,7 @@ class api_extend extends external_api
         $context_module = context_module::instance($course_module->id);
 
         $assign = new assign($context_module, $course_module, null);
-        $user_submission = $assign->get_user_submission($params['userid'], false);
+        $user_submission = $assign->get_user_submission($params['userid'], false, $params['attempt']);
 
         $file_urls = [];
 
@@ -428,7 +428,6 @@ class api_extend extends external_api
                 ASSIGNSUBMISSION_FILE_FILEAREA,
                 $user_submission->id
             );
-
 
             foreach ($files as $file) {
                 if ($file->get_filename() == '.') {
