@@ -382,7 +382,7 @@ class api_extend extends external_api
         return new external_function_parameters([
             'assignmentid' => new external_value(PARAM_INT, 'The assignment id'),
             'userid' => new external_value(PARAM_INT, 'The user id'),
-            'attempt' => new external_value(PARAM_INT, 'The attempt to create assignment files', VALUE_OPTIONAL, -1)
+            'submissionid' => new external_value(PARAM_INT, 'The submission id', VALUE_OPTIONAL)
         ]);
     }
 
@@ -391,22 +391,23 @@ class api_extend extends external_api
      *
      * @param $assignmentid
      * @param $userid
+     * @param null $submissionid
      * @return array
      * @throws coding_exception
      * @throws dml_exception
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function get_assignment_files($assignmentid, $userid, $attempt = -1)
+    public static function get_assignment_files($assignmentid, $userid, $submissionid = null)
     {
-        global $CFG;
+        global $CFG, $DB;
 
         require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
         //Parameter validation
         $params = self::validate_parameters(
             self::get_assignment_files_parameters(),
-            ['assignmentid' => $assignmentid, 'userid' => $userid, 'attempt' => $attempt]
+            ['assignmentid' => $assignmentid, 'userid' => $userid, 'submissionid' => $submissionid]
         );
 
         $context = context_system::instance();
@@ -416,7 +417,12 @@ class api_extend extends external_api
         $context_module = context_module::instance($course_module->id);
 
         $assign = new assign($context_module, $course_module, null);
-        $user_submission = $assign->get_user_submission($params['userid'], false, $params['attempt']);
+        if ($submissionid) {
+            $query_params = ['assignment' => $assign->get_instance()->id, 'id' => $submissionid];
+            $user_submission = $DB->get_record('assign_submission', $query_params, '*', MUST_EXIST);
+        } else {
+            $user_submission = $assign->get_user_submission($params['userid'], false);
+        }
 
         $file_urls = [];
 
