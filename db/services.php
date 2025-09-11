@@ -119,6 +119,14 @@ $functions = [
         'description' => 'Get assign and quiz overrides',
         'capabilities'  => 'mod/assign:view',
         'type' => 'read',
+    ],
+    'api_ext_get_h5pactivity' => [
+        'classname' => 'api_extend',
+        'methodname' => 'get_h5pactivity',
+        'classpath' => 'local/api_extend/externallib.php',
+        'description' => 'Get Single H5p',
+        'capabilities'  => 'mod/h5pactivity:view',
+        'type' => 'read',
     ]
 ];
 
@@ -137,7 +145,8 @@ $services = [
             'api_ext_get_markers_feedback',
             'api_ext_update_assign_activity',
             'api_ext_update_quiz_activity',
-            'api_ext_get_override'
+            'api_ext_get_override',
+            'api_ext_get_h5pactivity'
         ],
         'restrictedusers' => 1,
         'enabled' => 1,
