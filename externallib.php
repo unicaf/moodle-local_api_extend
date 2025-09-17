@@ -451,7 +451,8 @@ class api_extend extends external_api
     {
         return new external_function_parameters([
             'assignmentid' => new external_value(PARAM_INT, 'The assignment id'),
-            'userid' => new external_value(PARAM_INT, 'The user id')
+            'userid' => new external_value(PARAM_INT, 'The user id'),
+            'submissionid' => new external_value(PARAM_INT, 'The submission id', VALUE_OPTIONAL)
         ]);
     }
 
@@ -460,24 +461,24 @@ class api_extend extends external_api
      *
      * @param $assignmentid
      * @param $userid
+     * @param null $submissionid
      * @return array
      * @throws coding_exception
      * @throws dml_exception
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function get_assignment_files($assignmentid, $userid)
+    public static function get_assignment_files($assignmentid, $userid, $submissionid = null)
     {
-        global $CFG;
+        global $CFG, $DB;
 
         require_once($CFG->dirroot . '/mod/assign/locallib.php');
 
         //Parameter validation
         $params = self::validate_parameters(
             self::get_assignment_files_parameters(),
-            ['assignmentid' => $assignmentid, 'userid' => $userid]
+            ['assignmentid' => $assignmentid, 'userid' => $userid, 'submissionid' => $submissionid]
         );
-
 
         $context = context_system::instance();
         require_capability('mod/assign:view', $context);
@@ -486,7 +487,12 @@ class api_extend extends external_api
         $context_module = context_module::instance($course_module->id);
 
         $assign = new assign($context_module, $course_module, null);
-        $user_submission = $assign->get_user_submission($params['userid'], false);
+        if ($submissionid) {
+            $query_params = ['assignment' => $assign->get_instance()->id, 'id' => $submissionid];
+            $user_submission = $DB->get_record('assign_submission', $query_params, '*', MUST_EXIST);
+        } else {
+            $user_submission = $assign->get_user_submission($params['userid'], false);
+        }
 
         $file_urls = [];
 
@@ -498,7 +504,6 @@ class api_extend extends external_api
                 ASSIGNSUBMISSION_FILE_FILEAREA,
                 $user_submission->id
             );
-
 
             foreach ($files as $file) {
                 if ($file->get_filename() == '.') {
@@ -1070,4 +1075,38 @@ class api_extend extends external_api
             'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_DEFAULT)
         ]);
     }
+
+    public static function download_file_parameters() {
+        return new external_function_parameters([
+            'fileid' => new external_value(PARAM_INT, 'The file id')
+        ]);
+    }
+
+    public static function download_file($fileid) {
+        $params = self::validate_parameters(self::download_file_parameters(), ['fileid' => $fileid]);
+
+        $context = context_system::instance();
+        self::validate_context($context);
+
+        $fs = get_file_storage();
+        $file = $fs->get_file_by_id($params['fileid']);
+        if (!$file) {
+            throw new moodle_exception('filenotfound', 'error');
+        }
+
+        // Output file headers
+        header('Content-Description: File Transfer');
+        header('Content-Type: ' . $file->get_mimetype());
+        header('Content-Disposition: attachment; filename="' . $file->get_filename() . '"');
+        header('Content-Length: ' . $file->get_filesize());
+
+        // Send content and exit
+        echo $file->get_content();
+        die();
+    }
+
+    public static function download_file_returns() {
+        return null;
+    }
+
 }
