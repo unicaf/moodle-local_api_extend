@@ -372,40 +372,63 @@ class api_extend extends external_api
         $modules = [];
 
         foreach ($records as $record) {
-            if (!in_array($record->module_name, ['assign', 'quiz','h5pactivity'])) {
+            if (!in_array($record->module_name, ['assign', 'quiz','h5pactivity', 'reengagement'])) {
                 continue;
             }
-            $info = get_course_mod_info($record->instance, $record->module_name);
 
-            $category = null;
-            if(!empty($info->categoryid)) {
-                $category_item = $DB->get_record('grade_items',
-                    [
-                        'itemtype' => 'category',
-                        'iteminstance' => $info->categoryid,
-                        'courseid' => $info->course,
-                    ], '*');
-                if($category_item) {
-                    $category = $category_item->iteminfo;
-                }
+            // for reengagement we need only minimal result for later actions
+            if($record->module_name == 'reengagement'){
+                $modules[] = [
+                    'id' => $record->instance,
+                    'idnumber' => '0',
+                    'course' => $params['courseid'],
+                    'name' => 'reengagement',
+                    'intro' => 'reengagement',
+                    'duedate' => false,
+                    'grade' => 0.00,
+                    'visible' => 0,
+                    'module_type' => $record->module_name,
+                    'grademax' => 0.00,
+                    'gradepass' => 0.00,
+                    'weight' => 0.00,
+                    'deletioninprogress' => 0,
+                    'category' => 'reengagement'
+                ];
+
             }
+            else{
+                $info = get_course_mod_info($record->instance, $record->module_name);
 
-            $modules[] = [
-                'id' => $info->id,
-                'idnumber' => $info->idnumber,
-                'course' => $info->course,
-                'name' => $info->name,
-                'intro' => $info->intro,
-                'duedate' => isset($info->duedate) ? $info->duedate : false,
-                'grade' => $info->grade,
-                'visible' => $info->visible,
-                'module_type' => $record->module_name,
-                'grademax' => $info->grademax,
-                'gradepass' => $info->gradepass,
-                'weight' => $info->weight,
-                'deletioninprogress' => $info->deletioninprogress,
-                'category' => $category
-            ];
+                $category = null;
+                if(!empty($info->categoryid)) {
+                    $category_item = $DB->get_record('grade_items',
+                        [
+                            'itemtype' => 'category',
+                            'iteminstance' => $info->categoryid,
+                            'courseid' => $info->course,
+                        ], '*');
+                    if($category_item) {
+                        $category = $category_item->iteminfo;
+                    }
+                }
+
+                $modules[] = [
+                    'id' => $info->id,
+                    'idnumber' => $info->idnumber,
+                    'course' => $info->course,
+                    'name' => $info->name,
+                    'intro' => $info->intro,
+                    'duedate' => isset($info->duedate) ? $info->duedate : false,
+                    'grade' => $info->grade,
+                    'visible' => $info->visible,
+                    'module_type' => $record->module_name,
+                    'grademax' => $info->grademax,
+                    'gradepass' => $info->gradepass,
+                    'weight' => $info->weight,
+                    'deletioninprogress' => $info->deletioninprogress,
+                    'category' => $category
+                ];
+            }
 
         }
 
@@ -705,6 +728,103 @@ class api_extend extends external_api
         return (array)$record;
 
     }
+
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function update_course_reengagement_parameters()
+    {
+        return new external_function_parameters([
+            'instanceid' => new external_value(PARAM_INT, 'The assignment id'),
+            'availability' => new external_value(PARAM_INT, 'Availability (until, timestamp)'),
+        ]);
+    }
+
+    /**
+     * Update Course Module (Reengagement)
+     *
+     * @param int $instanceid
+     * @param int $availability
+     * @return array | false
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception
+     */
+    public static function update_course_reengagement(int $instanceid, int $availability)
+    {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(
+            self::update_course_reengagement_parameters(),
+            [
+                'instanceid' => $instanceid,
+                'availability' => $availability
+            ]
+        );
+
+        $context = context_system::instance();
+        require_capability('moodle/course:update', $context);
+
+        $table = 'reengagement';
+
+        $sql = "SELECT cm.id
+                  FROM {" . $table . "} a
+            INNER JOIN {course_modules} cm ON cm.course = a.course AND cm.instance = a.id
+            INNER JOIN {modules} m ON m.id = cm.module
+                 WHERE a.id = :id";
+
+        $record = $DB->get_record_sql($sql, ['id' => $params['instanceid']], MUST_EXIST);
+
+        if(empty($record)) {
+            return false;
+        }
+
+        // Get all the columns
+        $rec = new stdclass();
+        $rec->id = $record->id;
+
+
+        $availability_data = [
+            "op" => "&",
+            "c" => [
+                [
+                    "type" => "date",
+                    "d" => "<",
+                    "t" => $availability
+                ]
+            ],
+            "showc" => [
+                false
+            ]
+        ];
+
+        $rec->availability = json_encode($availability_data);
+
+        $DB->update_record('course_modules', $rec);
+
+        return (array)$record;
+
+    }
+
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_single_structure
+     */
+    public static function update_course_reengagement_returns()
+    {
+        return new external_single_structure(
+            [
+                'id' => new external_value(PARAM_INT, 'The course module id'),
+            ]
+        );
+    }
+
 
     /**
      * Returns description of method result value

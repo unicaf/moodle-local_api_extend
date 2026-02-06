@@ -88,6 +88,14 @@ $functions = [
         'capabilities'  => 'moodle/course:update',
         'type' => 'write',
     ],
+    'api_ext_update_course_reengagement' => [
+        'classname' => 'api_extend',
+        'methodname' => 'update_course_reengagement',
+        'classpath' => 'local/api_extend/externallib.php',
+        'description' => 'Update Course Module Reengagement',
+        'capabilities'  => 'moodle/course:update',
+        'type' => 'write',
+    ],
     'api_ext_get_markers_feedback' => [
         'classname' => 'api_extend',
         'methodname' => 'get_markers_feedback',
@@ -156,6 +164,7 @@ $services = [
             'api_ext_get_override',
             'api_ext_get_h5pactivity',
             'api_ext_download_file',
+            'api_ext_update_course_reengagement',
         ],
         'restrictedusers' => 1,
         'enabled' => 1,
