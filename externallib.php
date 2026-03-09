@@ -1024,7 +1024,7 @@ class api_extend extends external_api
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function update_assign_activity(int $instance_id, int $starting_date = null, int $deadline = null, int $cut_off = null)
+    public static function update_assign_activity(int $instance_id, ?int $starting_date = null, ?int $deadline = null, ?int $cut_off = null)
     {
         global $DB;
 
@@ -1118,7 +1118,7 @@ class api_extend extends external_api
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function update_quiz_activity(int $instance_id, int $starting_date = null, int $cut_off = null)
+    public static function update_quiz_activity(int $instance_id, ?int $starting_date = null, ?int $cut_off = null)
     {
         global $DB;
 

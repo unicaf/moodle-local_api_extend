@@ -22,7 +22,7 @@
 
 defined('MOODLE_INTERNAL') || die;
 
-$plugin->version  = 2026011602;
+$plugin->version  = 2026021900;
 $plugin->requires = 2018051700;  // Requires this Moodle version - at least 2.0
 $plugin->component = 'local_api_extend';
 $plugin->release = '0.2';
