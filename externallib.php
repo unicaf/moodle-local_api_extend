@@ -114,8 +114,8 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Assignment id'),
-                'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_OPTIONAL, null),
-                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date', VALUE_OPTIONAL, null)
+                'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_DEFAULT, null, NULL_ALLOWED),
+                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date', VALUE_DEFAULT, null, NULL_ALLOWED)
             ]
         );
     }
@@ -475,7 +475,7 @@ class api_extend extends external_api
         return new external_function_parameters([
             'assignmentid' => new external_value(PARAM_INT, 'The assignment id'),
             'userid' => new external_value(PARAM_INT, 'The user id'),
-            'submissionid' => new external_value(PARAM_INT, 'The submission id', VALUE_OPTIONAL)
+            'submissionid' => new external_value(PARAM_INT, 'The submission id', VALUE_DEFAULT, null, NULL_ALLOWED)
         ]);
     }
 
@@ -1024,7 +1024,7 @@ class api_extend extends external_api
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function update_assign_activity(int $instance_id, int $starting_date = null, int $deadline = null, int $cut_off = null)
+    public static function update_assign_activity(int $instance_id, ?int $starting_date = null, ?int $deadline = null, ?int $cut_off = null)
     {
         global $DB;
 
@@ -1118,7 +1118,7 @@ class api_extend extends external_api
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function update_quiz_activity(int $instance_id, int $starting_date = null, int $cut_off = null)
+    public static function update_quiz_activity(int $instance_id, ?int $starting_date = null, ?int $cut_off = null)
     {
         global $DB;
 
