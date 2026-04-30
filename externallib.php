@@ -24,6 +24,7 @@ defined('MOODLE_INTERNAL') || die;
 
 require_once($CFG->libdir . "/externallib.php");
 require_once($CFG->dirroot . "/local/api_extend/lib.php");
+require_once($CFG->dirroot . "/mod/forum/lib.php");
 
 /**
  * Class api_extend
@@ -114,8 +115,8 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Assignment id'),
-                'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_OPTIONAL, null),
-                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date', VALUE_OPTIONAL, null)
+                'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_DEFAULT, null, NULL_ALLOWED),
+                'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date', VALUE_DEFAULT, null, NULL_ALLOWED)
             ]
         );
     }
@@ -174,10 +175,10 @@ class api_extend extends external_api
         return new external_single_structure(
             [
                 'id' => new external_value(PARAM_INT, 'Assignment id'),
-                'idnumber' => new external_value(PARAM_TEXT, 'ID Number'),
+                'idnumber' => new external_value(PARAM_RAW, 'ID Number', VALUE_DEFAULT, '', NULL_ALLOWED),
                 'course' => new external_value(PARAM_INT, 'Course id'),
                 'name' => new external_value(PARAM_TEXT, 'Assignment name'),
-                'intro' => new external_value(PARAM_RAW, 'Intro Text'),
+                'intro' => new external_value(PARAM_RAW, 'Intro Text', VALUE_DEFAULT, '', NULL_ALLOWED),
                 'duedate' => new external_value(PARAM_INT, 'Due Date'),
                 'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date'),
                 'grade' => new external_value(PARAM_FLOAT, 'Grade'),
@@ -253,7 +254,7 @@ class api_extend extends external_api
                 'grademax' => new external_value(PARAM_FLOAT, 'Max Grade'),
                 'gradepass' => new external_value(PARAM_FLOAT, 'Passing Grade'),
                 'weight' => new external_value(PARAM_FLOAT, 'Weight'),
-                'duedate' => new external_value(PARAM_INT, 'Due Date')
+                'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_DEFAULT, null, NULL_ALLOWED)
             ]
         );
     }
@@ -321,7 +322,7 @@ class api_extend extends external_api
                 'grademax' => new external_value(PARAM_FLOAT, 'Max Grade'),
                 'gradepass' => new external_value(PARAM_FLOAT, 'Passing Grade'),
                 'weight' => new external_value(PARAM_FLOAT, 'Weight'),
-                'duedate' => new external_value(PARAM_INT, 'Due Date'),
+                'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_DEFAULT, null, NULL_ALLOWED),
                 'cutoffdate' => new external_value(PARAM_INT, 'Cut off Date'),
             ]
         );
@@ -372,46 +373,70 @@ class api_extend extends external_api
         $modules = [];
 
         foreach ($records as $record) {
-            if (!in_array($record->module_name, ['assign', 'quiz','h5pactivity'])) {
+            if (!in_array($record->module_name, ['assign', 'quiz','h5pactivity', 'reengagement'])) {
                 continue;
             }
-            $info = get_course_mod_info($record->instance, $record->module_name);
 
-            $category = null;
-            if(!empty($info->categoryid)) {
-                $category_item = $DB->get_record('grade_items',
-                    [
-                        'itemtype' => 'category',
-                        'iteminstance' => $info->categoryid,
-                        'courseid' => $info->course,
-                    ], '*');
-                if($category_item) {
-                    $category = $category_item->iteminfo;
-                }
+            // for reengagement we need only minimal result for later actions
+            if($record->module_name == 'reengagement'){
+                $modules[] = [
+                    'id' => $record->instance,
+                    'idnumber' => '0',
+                    'course' => $params['courseid'],
+                    'name' => 'reengagement',
+                    'intro' => 'reengagement',
+                    'duedate' => null,
+                    'grade' => 0.00,
+                    'visible' => 0,
+                    'module_type' => $record->module_name,
+                    'grademax' => 0.00,
+                    'gradepass' => 0.00,
+                    'weight' => 0.00,
+                    'deletioninprogress' => 0,
+                    'category' => 'reengagement'
+                ];
+
             }
+            else{
+                $info = get_course_mod_info($record->instance, $record->module_name);
 
-            $modules[] = [
-                'id' => $info->id,
-                'idnumber' => $info->idnumber,
-                'course' => $info->course,
-                'name' => $info->name,
-                'intro' => $info->intro,
-                'duedate' => isset($info->duedate) ? $info->duedate : false,
-                'grade' => $info->grade,
-                'visible' => $info->visible,
-                'module_type' => $record->module_name,
-                'grademax' => $info->grademax,
-                'gradepass' => $info->gradepass,
-                'weight' => $info->weight,
-                'deletioninprogress' => $info->deletioninprogress,
-                'category' => $category
-            ];
+                $category = null;
+                if(!empty($info->categoryid)) {
+                    $category_item = $DB->get_record('grade_items',
+                        [
+                            'itemtype' => 'category',
+                            'iteminstance' => $info->categoryid,
+                            'courseid' => $info->course,
+                        ], '*');
+                    if($category_item) {
+                        $category = $category_item->iteminfo;
+                    }
+                }
+
+                $modules[] = [
+                    'id' => $info->id,
+                    'idnumber' => $info->idnumber,
+                    'course' => $info->course,
+                    'name' => $info->name,
+                    'intro' => $info->intro,
+                    'duedate' => isset($info->duedate) ? (int)$info->duedate : null,
+                    'grade' => $info->grade,
+                    'visible' => $info->visible,
+                    'module_type' => $record->module_name,
+                    'grademax' => $info->grademax,
+                    'gradepass' => $info->gradepass,
+                    'weight' => $info->weight,
+                    'deletioninprogress' => $info->deletioninprogress,
+                    'category' => $category !== null ? (string)$category : '',
+                ];
+            }
 
         }
 
         return $modules;
 
     }
+
 
     /**
      * Returns description of method result value
@@ -428,7 +453,7 @@ class api_extend extends external_api
                     'course' => new external_value(PARAM_INT, 'Course id'),
                     'name' => new external_value(PARAM_TEXT, 'Assignment name'),
                     'intro' => new external_value(PARAM_RAW, 'Intro Text'),
-                    'duedate' => new external_value(PARAM_RAW, 'Due Date'),
+                    'duedate' => new external_value(PARAM_INT, 'Due Date', VALUE_DEFAULT, null, NULL_ALLOWED),
                     'grade' => new external_value(PARAM_FLOAT, 'Grade'),
                     'visible' => new external_value(PARAM_INT, 'Status'),
                     'module_type' => new external_value(PARAM_TEXT, 'The Module Type'),
@@ -436,7 +461,7 @@ class api_extend extends external_api
                     'gradepass' => new external_value(PARAM_FLOAT, 'Passing Grade'),
                     'weight' => new external_value(PARAM_FLOAT, 'Weight'),
                     'deletioninprogress' => new external_value(PARAM_INT, 'Deletion In Progress'),
-                    'category' => new external_value(PARAM_TEXT, 'Category value issue'),
+                    'category' => new external_value(PARAM_TEXT, 'Category', VALUE_DEFAULT, ''),
                 ]
             )
         );
@@ -452,7 +477,7 @@ class api_extend extends external_api
         return new external_function_parameters([
             'assignmentid' => new external_value(PARAM_INT, 'The assignment id'),
             'userid' => new external_value(PARAM_INT, 'The user id'),
-            'submissionid' => new external_value(PARAM_INT, 'The submission id', VALUE_OPTIONAL)
+            'submissionid' => new external_value(PARAM_INT, 'The submission id', VALUE_DEFAULT, 0)
         ]);
     }
 
@@ -477,7 +502,11 @@ class api_extend extends external_api
         //Parameter validation
         $params = self::validate_parameters(
             self::get_assignment_files_parameters(),
-            ['assignmentid' => $assignmentid, 'userid' => $userid, 'submissionid' => $submissionid]
+            [
+                'assignmentid' => $assignmentid,
+                'userid' => $userid,
+                'submissionid' => $submissionid
+            ]
         );
 
         $context = context_system::instance();
@@ -487,8 +516,8 @@ class api_extend extends external_api
         $context_module = context_module::instance($course_module->id);
 
         $assign = new assign($context_module, $course_module, null);
-        if ($submissionid) {
-            $query_params = ['assignment' => $assign->get_instance()->id, 'id' => $submissionid];
+        if (!empty($params['submissionid'])) {
+            $query_params = ['assignment' => $assign->get_instance()->id, 'id' => $params['submissionid']];
             $user_submission = $DB->get_record('assign_submission', $query_params, '*', MUST_EXIST);
         } else {
             $user_submission = $assign->get_user_submission($params['userid'], false);
@@ -528,7 +557,7 @@ class api_extend extends external_api
         }
 
         return [
-            'submission_date' => $user_submission->timemodified,
+            'submission_date' => $user_submission ? (int)$user_submission->timemodified : 0,
             'files' => $file_urls,
         ];
 
@@ -539,9 +568,9 @@ class api_extend extends external_api
      *
      * @return external_function_parameters
      */
-    public static function get_assignment_files_returns()
+    public static function get_assignment_files_returns(): external_single_structure
     {
-        return new external_function_parameters([
+        return new external_single_structure([
             'submission_date' => new external_value(PARAM_INT, 'The Submission Date'),
             'files' => new external_multiple_structure(
                 new external_single_structure(
@@ -704,6 +733,98 @@ class api_extend extends external_api
 
         return (array)$record;
 
+    }
+
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function update_course_reengagement_parameters()
+    {
+        return new external_function_parameters([
+            'instanceid' => new external_value(PARAM_INT, 'The assignment id'),
+            'availability' => new external_value(PARAM_INT, 'Availability (until, timestamp)'),
+        ]);
+    }
+
+    /**
+     * Update Course Module (Reengagement)
+     *
+     * @param int $instanceid
+     * @param int $availability
+     * @return array | false
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws required_capability_exception
+     */
+    public static function update_course_reengagement(int $instanceid, int $availability)
+    {
+        global $DB;
+
+        //Parameter validation
+        $params = self::validate_parameters(
+            self::update_course_reengagement_parameters(),
+            [
+                'instanceid' => $instanceid,
+                'availability' => $availability
+            ]
+        );
+
+        $context = context_system::instance();
+        require_capability('moodle/course:update', $context);
+
+        $table = 'reengagement';
+
+        $sql = "SELECT cm.id
+                  FROM {" . $table . "} a
+            INNER JOIN {course_modules} cm ON cm.course = a.course AND cm.instance = a.id
+            INNER JOIN {modules} m ON m.id = cm.module
+                 WHERE a.id = :id";
+
+        $record = $DB->get_record_sql($sql, ['id' => $params['instanceid']], MUST_EXIST);
+
+        // Get all the columns
+        $rec = new stdclass();
+        $rec->id = $record->id;
+
+
+        $availability_data = [
+            "op" => "&",
+            "c" => [
+                [
+                    "type" => "date",
+                    "d" => "<",
+                    "t" => $availability
+                ]
+            ],
+            "showc" => [
+                false
+            ]
+        ];
+
+        $rec->availability = json_encode($availability_data);
+
+        $DB->update_record('course_modules', $rec);
+
+        return ['id' => (int)$record->id];
+
+    }
+
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_single_structure
+     */
+    public static function update_course_reengagement_returns()
+    {
+        return new external_single_structure(
+            [
+                'id' => new external_value(PARAM_INT, 'The course module id'),
+            ]
+        );
     }
 
     /**
@@ -904,7 +1025,7 @@ class api_extend extends external_api
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function update_assign_activity(int $instance_id, int $starting_date = null, int $deadline = null, int $cut_off = null)
+    public static function update_assign_activity(int $instance_id, ?int $starting_date = null, ?int $deadline = null, ?int $cut_off = null)
     {
         global $DB;
 
@@ -930,23 +1051,23 @@ class api_extend extends external_api
         $record = $DB->get_record_sql($sql, ['id' => $instance_id, 'module' => $table], MUST_EXIST);
 
         if(empty($record)) {
-            return false;
+            return ['id' => 0];
         }
 
         $has_something_to_update = false;
         $rec = new stdclass();
         $rec->id = $record->id;
-        if($starting_date !== null) {
+        if($params['starting_date'] !== null) {
             $has_something_to_update = true;
-            $rec->allowsubmissionsfromdate = $starting_date;
+            $rec->allowsubmissionsfromdate = $params['starting_date'];
         }
-        if($deadline !== null) {
+        if($params['deadline'] !== null) {
             $has_something_to_update = true;
-            $rec->duedate = $deadline;
+            $rec->duedate = $params['deadline'];
         }
-        if($cut_off !== null) {
+        if($params['cut_off'] !== null) {
             $has_something_to_update = true;
-            $rec->cutoffdate = $cut_off;
+            $rec->cutoffdate = $params['cut_off'];
         }
 
         if($has_something_to_update) {
@@ -955,7 +1076,7 @@ class api_extend extends external_api
         }
 
         // nothing to update
-        return false;
+        return ['id' => $record->id];
     }
 
     /**
@@ -981,9 +1102,9 @@ class api_extend extends external_api
     {
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The activity id'),
-            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_DEFAULT),
-            'deadline' => new external_value(PARAM_INT, 'The soft deadline of activity', VALUE_DEFAULT),
-            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_DEFAULT)
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_DEFAULT, null, NULL_ALLOWED),
+            'deadline' => new external_value(PARAM_INT, 'The soft deadline of activity', VALUE_DEFAULT, null, NULL_ALLOWED),
+            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_DEFAULT, null, NULL_ALLOWED)
         ]);
     }
 
@@ -998,7 +1119,7 @@ class api_extend extends external_api
      * @throws invalid_parameter_exception
      * @throws required_capability_exception
      */
-    public static function update_quiz_activity(int $instance_id, int $starting_date = null, int $cut_off = null)
+    public static function update_quiz_activity(int $instance_id, ?int $starting_date = null, ?int $cut_off = null)
     {
         global $DB;
 
@@ -1023,20 +1144,20 @@ class api_extend extends external_api
         $record = $DB->get_record_sql($sql, ['id' => $instance_id, 'module' => $table], MUST_EXIST);
 
         if(empty($record)) {
-            return false;
+            return ['id' => 0];
         }
 
         $has_something_to_update = false;
         $rec = new stdclass();
         $rec->id = $record->id;
-        if($starting_date !== null) {
+        if($params['starting_date'] !== null) {
             $has_something_to_update = true;
-            $rec->timeopen = $starting_date;
+            $rec->timeopen = $params['starting_date'];
         }
 
-        if($cut_off !== null) {
+        if($params['cut_off'] !== null) {
             $has_something_to_update = true;
-            $rec->timeclose = $cut_off;
+            $rec->timeclose = $params['cut_off'];
         }
 
         if($has_something_to_update) {
@@ -1045,7 +1166,7 @@ class api_extend extends external_api
         }
 
         // nothing to update
-        return false;
+        return ['id' => $record->id];
     }
 
     /**
@@ -1071,8 +1192,197 @@ class api_extend extends external_api
     {
         return new external_function_parameters([
             'instanceid' => new external_value(PARAM_INT, 'The activity id'),
-            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_DEFAULT),
-            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_DEFAULT)
+            'starting_date' => new external_value(PARAM_INT, 'The starting date of activity', VALUE_DEFAULT, null, NULL_ALLOWED),
+            'cut_off' => new external_value(PARAM_INT, 'The hard deadline of activity', VALUE_DEFAULT, null, NULL_ALLOWED)
+        ]);
+    }
+
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function update_forum_subscription_type_parameters(): external_function_parameters
+    {
+        return new external_function_parameters([
+            'instanceid' => new external_value(PARAM_INT, 'The forum id'),
+            'subscriptiontype' => new external_value(
+                PARAM_ALPHA,
+                'Forum subscription type: optional|forced|auto|disabled'
+            ),
+        ]);
+    }
+
+    /**
+     * Update forum subscription type.
+     *
+     * Compatible with Moodle 4.5 and 5.x.
+     *
+     * @param int $instance_id
+     * @param string $subscriptiontype
+     * @return array|false
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws moodle_exception
+     * @throws required_capability_exception
+     */
+    public static function update_forum_subscription_type(int $instance_id, string $subscriptiontype)
+    {
+        global $DB;
+
+        $params = self::validate_parameters(
+            self::update_forum_subscription_type_parameters(),
+            [
+                'instanceid' => $instance_id,
+                'subscriptiontype' => $subscriptiontype,
+            ]
+        );
+
+        $subscriptionmap = [
+            'optional' => FORUM_CHOOSESUBSCRIBE,
+            'forced' => FORUM_FORCESUBSCRIBE,
+            'auto' => FORUM_INITIALSUBSCRIBE,
+            'disabled' => FORUM_DISALLOWSUBSCRIBE,
+        ];
+
+        if (!array_key_exists($params['subscriptiontype'], $subscriptionmap)) {
+            throw new invalid_parameter_exception('Invalid subscriptiontype. Use optional, forced, auto, or disabled.');
+        }
+
+        $forum = $DB->get_record('forum', ['id' => $params['instanceid']], '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('forum', $forum->id, $forum->course, false, MUST_EXIST);
+
+        $context = context_module::instance($cm->id);
+        self::validate_context($context);
+        require_capability('moodle/course:update', $context);
+
+        $forum->instance = $forum->id;
+        $forum->coursemodule = $cm->id;
+        $forum->forcesubscribe = $subscriptionmap[$params['subscriptiontype']];
+
+        $updated = forum_update_instance($forum, null);
+
+        if (!$updated) {
+            throw new moodle_exception('errorupdatingforum', 'local_api_extend');
+        }
+
+        $freshforum = $DB->get_record('forum', ['id' => $forum->id], 'id, forcesubscribe', MUST_EXIST);
+
+        return [
+            'id' => (int)$freshforum->id,
+            'forcesubscribe' => (int)$freshforum->forcesubscribe,
+            'subscriptiontype' => $params['subscriptiontype'],
+        ];
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_single_structure
+     */
+    public static function update_forum_subscription_type_returns(): external_single_structure
+    {
+        return new external_single_structure([
+            'id' => new external_value(PARAM_INT, 'The forum id'),
+            'forcesubscribe' => new external_value(PARAM_INT, 'Stored Moodle subscription constant'),
+            'subscriptiontype' => new external_value(PARAM_TEXT, 'Resolved subscription type'),
+        ]);
+    }
+
+    /**
+     * Returns description of method parameters
+     *
+     * @return external_function_parameters
+     */
+    public static function get_forums_parameters(): external_function_parameters
+    {
+        return new external_function_parameters([
+            'courseid' => new external_value(PARAM_INT, 'Optional course id filter, 0 returns all forums', VALUE_DEFAULT, 0)
+        ]);
+    }
+
+    /**
+     * Retrieve forum instances.
+     *
+     * Compatible with Moodle 4.5 and 5.x.
+     *
+     * @param int $courseid
+     * @return array
+     * @throws dml_exception
+     * @throws invalid_parameter_exception
+     * @throws moodle_exception
+     * @throws required_capability_exception
+     */
+    public static function get_forums(int $courseid = 0): array
+    {
+        global $DB;
+
+        $params = self::validate_parameters(
+            self::get_forums_parameters(),
+            [
+                'courseid' => $courseid,
+            ]
+        );
+
+        $context = context_system::instance();
+        self::validate_context($context);
+        require_capability('moodle/course:view', $context);
+
+        $sql = "SELECT f.id,
+                       cm.id AS cmid,
+                       COALESCE(cm.idnumber, '') AS idnumber,
+                       f.course,
+                       f.type,
+                       cm.visible
+                  FROM {forum} f
+            INNER JOIN {course} c ON c.id = f.course
+            INNER JOIN {course_modules} cm ON cm.instance = f.id
+            INNER JOIN {modules} m ON m.id = cm.module
+                 WHERE m.name = :module";
+
+        $queryparams = ['module' => 'forum'];
+
+        if (!empty($params['courseid'])) {
+            $sql .= " AND f.type != 'news' AND f.course = :courseid";
+            $queryparams['courseid'] = $params['courseid'];
+        } else {
+            $sql .= " AND f.type != 'news' AND c.visible = :coursevisible"
+                . " AND (c.enddate = 0 OR c.enddate > :now)";
+            $queryparams['coursevisible'] = 1;
+            $queryparams['now'] = time();
+        }
+
+        $sql .= " ORDER BY f.course ASC, f.id ASC";
+
+        $records = $DB->get_records_sql($sql, $queryparams);
+        $forums = [];
+        foreach ($records as $record) {
+            $forums[] = [
+                'id' => (int)$record->id,
+                'course' => (int)$record->course,
+            ];
+        }
+
+        return [
+            'forums' => $forums,
+        ];
+    }
+
+    /**
+     * Returns description of method result value
+     *
+     * @return external_single_structure
+     */
+    public static function get_forums_returns(): external_single_structure
+    {
+        return new external_single_structure([
+            'forums' => new external_multiple_structure(
+                new external_single_structure([
+                    'id' => new external_value(PARAM_INT, 'The forum id'),
+                    'course' => new external_value(PARAM_INT, 'The course id'),
+                ])
+            ),
         ]);
     }
 
@@ -1090,23 +1400,48 @@ class api_extend extends external_api
 
         $fs = get_file_storage();
         $file = $fs->get_file_by_id($params['fileid']);
-        if (!$file) {
+        if (!$file || $file->is_directory()) {
             throw new moodle_exception('filenotfound', 'error');
         }
 
-        // Output file headers
-        header('Content-Description: File Transfer');
-        header('Content-Type: ' . $file->get_mimetype());
-        header('Content-Disposition: attachment; filename="' . $file->get_filename() . '"');
-        header('Content-Length: ' . $file->get_filesize());
+        $content = $file->get_content();
+        $encodedcontent = base64_encode($content);
 
-        // Send content and exit
-        echo $file->get_content();
-        die();
+        $pluginfileurl = moodle_url::make_pluginfile_url(
+            $file->get_contextid(),
+            $file->get_component(),
+            $file->get_filearea(),
+            $file->get_itemid(),
+            $file->get_filepath(),
+            $file->get_filename(),
+            false
+        );
+
+        return [
+            'id' => (int)$file->get_id(),
+            'filename' => $file->get_filename(),
+            'filepath' => $file->get_filepath(),
+            'filesize' => (int)$file->get_filesize(),
+            'mimetype' => $file->get_mimetype(),
+            'content' => $encodedcontent,
+            'contentencoding' => 'base64',
+            'fileurl' => $pluginfileurl->out(false),
+        ];
     }
 
-    public static function download_file_returns() {
-        return null;
+    public static function download_file_returns(): external_single_structure
+    {
+        return new external_single_structure([
+            'id' => new external_value(PARAM_INT, 'File id'),
+            'filename' => new external_value(PARAM_TEXT, 'Filename'),
+            'filepath' => new external_value(PARAM_TEXT, 'File path'),
+            'filesize' => new external_value(PARAM_INT, 'File size in bytes'),
+            'mimetype' => new external_value(PARAM_TEXT, 'Mime type'),
+            'content' => new external_value(PARAM_RAW, 'Base64-encoded file content'),
+            'contentencoding' => new external_value(PARAM_TEXT, 'Encoding used for content'),
+            'fileurl' => new external_value(PARAM_RAW, 'Pluginfile URL if the caller can use it'),
+        ]);
     }
+    
 
 }
